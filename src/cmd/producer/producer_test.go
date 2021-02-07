@@ -84,7 +84,7 @@ func TestSerializationDeserialization(t *testing.T) {
 	}
 
 	if len(trm.errors) > 0 {
-		for e := range trm.errors {
+		for _, e := range trm.errors {
 			fmt.Println(e)
 			t.Error(e)
 		}

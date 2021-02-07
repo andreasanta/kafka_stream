@@ -19,8 +19,6 @@ func (DbConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { ret
 func (h DbConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
 
-		fmt.Printf("Message topic:%q partition:%d offset:%d\n", msg.Topic, msg.Partition, msg.Offset)
-
 		// Here we write the message to the datbase in
 		// a transactional fashion, we roll back if
 		// necessary and mark the message as processed
@@ -45,6 +43,8 @@ func (h DbConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, c
 			sess.MarkMessage(msg, "OK")
 			return nil
 		})
+
+		fmt.Printf("Stored trade with ID %s and version %d\n", t.ID, t.Version)
 
 	}
 

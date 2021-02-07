@@ -18,7 +18,7 @@ import (
 var (
 	brokers  = flag.String("brokers", os.Getenv("KAFKA_PEERS"), "The Kafka brokers to connect to, as a comma separated list")
 	verbose  = flag.Bool("verbose", false, "Turn on Kafka client logging")
-	interval = flag.Int("ms", 1000, "Number of ms to wait between consecutive sends")
+	interval = flag.Int("ms", 543, "Number of ms to wait between consecutive sends")
 )
 
 func main() {
@@ -53,6 +53,8 @@ func main() {
 			CreatedAt:    gofakeit.Date(),
 		}
 
+		log.Printf("Producing trade ID %s", trade.ID)
+
 		producer.Input() <- &sarama.ProducerMessage{
 			Topic: "trades",
 			Value: trade, // This used the Encode() method of the struct and marshals into JSON
@@ -77,9 +79,18 @@ func createAysncProducer(brokerList []string) sarama.AsyncProducer {
 	config.Producer.Compression = sarama.CompressionSnappy   // Compress messages -> higher throughput, less net I/O
 	config.Producer.Flush.Frequency = 500 * time.Millisecond // Flush batches every 500ms
 
-	producer, err := sarama.NewAsyncProducer(brokerList, config)
-	if err != nil {
-		log.Fatalln("Failed to start Sarama producer:", err)
+	var producer sarama.AsyncProducer
+	var err error
+
+	for {
+		producer, err = sarama.NewAsyncProducer(brokerList, config)
+		if err != nil {
+			log.Println("Failed to start Sarama producer:", err)
+			log.Println("Waiting and retrying:", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	// Go routine that handles temporary writing issues
